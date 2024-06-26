@@ -2,27 +2,62 @@
 <html>
 <head>
     <title>Varnish Cache Statistics</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
     <script>
         async function fetchStats() {
             const response = await fetch('/stats');
             const data = await response.json();
-            document.getElementById('clientReq').innerText = data.client_req;
-            document.getElementById('cacheHit').innerText = data.cache_hit;
-            document.getElementById('cacheHitGrace').innerText = data.cache_hit_grace;
-            document.getElementById('cacheMiss').innerText = data.cache_miss;
-            document.getElementById('uncacheable').innerText = data.uncacheable;
+            updateTable(data);
         }
 
-        setInterval(fetchStats, 5000);
-        window.onload = fetchStats;
+        function updateTable(data) {
+            const table = document.getElementById('statsTable').getElementsByTagName('tbody')[0];
+            table.innerHTML = '';
+
+            for (const key in data) {
+                if (data.hasOwnProperty(key)) {
+                    const row = table.insertRow();
+                    const cell1 = row.insertCell(0);
+                    const cell2 = row.insertCell(1);
+                    cell1.innerHTML = key;
+                    cell2.innerHTML = data[key];
+                }
+            }
+        }
+
+        window.onload = function() {
+            setInterval(fetchStats, 5000);
+        }
     </script>
 </head>
 <body>
     <h1>Varnish Cache Statistics</h1>
-    <p><strong>Total Requests:</strong> <span id="clientReq"></span></p>
-    <p><strong>Cache Hits:</strong> <span id="cacheHit"></span></p>
-    <p><strong>Cache Hits (Grace):</strong> <span id="cacheHitGrace"></span></p>
-    <p><strong>Cache Misses:</strong> <span id="cacheMiss"></span></p>
-    <p><strong>Uncacheable Responses:</strong> <span id="uncacheable"></span></p>
+    <h2>Statistics Table</h2>
+    <table id="statsTable">
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be populated by JavaScript -->
+        </tbody>
+    </table>
 </body>
 </html>
