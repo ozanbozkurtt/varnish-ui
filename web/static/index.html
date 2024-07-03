@@ -30,7 +30,7 @@
             table.innerHTML = '';
 
             for (const key in data) {
-                if (data.hasOwnProperty(key)) {
+                if (data.hasOwnProperty(key) && key !== "endpoint_counts") {
                     const row = table.insertRow();
                     const cell1 = row.insertCell(0);
                     const cell2 = row.insertCell(1);
@@ -38,9 +38,21 @@
                     cell2.innerHTML = data[key];
                 }
             }
+
+            const endpointTable = document.getElementById('endpointTable').getElementsByTagName('tbody')[0];
+            endpointTable.innerHTML = '';
+
+            for (const endpoint in data.endpoint_counts) {
+                const row = endpointTable.insertRow();
+                const cell1 = row.insertCell(0);
+                const cell2 = row.insertCell(1);
+                cell1.innerHTML = endpoint;
+                cell2.innerHTML = data.endpoint_counts[endpoint];
+            }
         }
 
         window.onload = function() {
+            fetchStats();
             setInterval(fetchStats, 5000);
         }
     </script>
@@ -53,6 +65,19 @@
             <tr>
                 <th>Metric</th>
                 <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be populated by JavaScript -->
+        </tbody>
+    </table>
+
+    <h2>Endpoint Counts</h2>
+    <table id="endpointTable">
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Count</th>
             </tr>
         </thead>
         <tbody>

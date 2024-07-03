@@ -1,28 +1,31 @@
 package varnish
 
 import (
+	"bufio"
 	"encoding/json"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 )
 
 type VarnishStats struct {
-	ClientReq      int `json:"client_req"`
-	CacheHit       int `json:"cache_hit"`
-	CacheHitGrace  int `json:"cache_hit_grace"`
-	CacheMiss      int `json:"cache_miss"`
-	Uncacheable    int `json:"uncacheable"`
-	BackendConn    int `json:"backend_conn"`
-	BackendReuse   int `json:"backend_reuse"`
-	BackendRecycle int `json:"backend_recycle"`
-	FetchLength    int `json:"fetch_length"`
-	FetchChunked   int `json:"fetch_chunked"`
-	SessConn       int `json:"sess_conn"`
-	NObject        int `json:"n_object"`
-	Expired        int `json:"expired"`
-	Threads        int `json:"threads"`
-	Bans           int `json:"bans"`
+	ClientReq      int            `json:"client_req"`
+	CacheHit       int            `json:"cache_hit"`
+	CacheHitGrace  int            `json:"cache_hit_grace"`
+	CacheMiss      int            `json:"cache_miss"`
+	Uncacheable    int            `json:"uncacheable"`
+	BackendConn    int            `json:"backend_conn"`
+	BackendReuse   int            `json:"backend_reuse"`
+	BackendRecycle int            `json:"backend_recycle"`
+	FetchLength    int            `json:"fetch_length"`
+	FetchChunked   int            `json:"fetch_chunked"`
+	SessConn       int            `json:"sess_conn"`
+	NObject        int            `json:"n_object"`
+	Expired        int            `json:"expired"`
+	Threads        int            `json:"threads"`
+	Bans           int            `json:"bans"`
+	EndpointCounts map[string]int `json:"endpoint_counts"`
 }
 
 func GetVarnishStats() ([]byte, error) {
@@ -33,6 +36,12 @@ func GetVarnishStats() ([]byte, error) {
 	}
 
 	stats := parseVarnishStats(string(output))
+	endpointCounts, err := getEndpointCounts("/var/log/varnish/varnish.log")
+	if err != nil {
+		return nil, err
+	}
+	stats.EndpointCounts = endpointCounts
+
 	return json.Marshal(stats)
 }
 
@@ -90,4 +99,31 @@ func parseValue(value string) int {
 		return 0
 	}
 	return parsedValue
+}
+
+func getEndpointCounts(logFile string) (map[string]int, error) {
+	endpointCounts := make(map[string]int)
+
+	file, err := os.Open(logFile)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if len(fields) < 7 {
+			continue
+		}
+		endpoint := fields[6]
+		endpointCounts[endpoint]++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return endpointCounts, nil
 }
