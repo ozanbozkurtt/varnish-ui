@@ -21,11 +21,14 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(stats)
 }
 
-func main() {
-	// /stats endpoint'ini işleyici
-	http.HandleFunc("/stats", statsHandler)
+func chartsHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./web/static/charts.html")
+}
 
-	// Web arayüzü için dosya sunucusu
+func main() {
+	http.HandleFunc("/stats", statsHandler)
+	http.HandleFunc("/charts", chartsHandler)
+
 	fs := http.FileServer(http.Dir("./web/static"))
 	http.Handle("/", fs)
 

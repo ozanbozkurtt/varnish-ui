@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Varnish Cache Statistics - Charts</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-container {
+            width: 80%;
+            margin: auto;
+        }
+    </style>
+    <script>
+        async function fetchStats() {
+            const response = await fetch('/stats');
+            const data = await response.json();
+            return data;
+        }
+
+        async function createCharts() {
+            const data = await fetchStats();
+
+            const ctx1 = document.getElementById('chart1').getContext('2d');
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Client Requests', 'Cache Hits', 'Cache Misses'],
+                    datasets: [{
+                        label: 'Varnish Cache Statistics',
+                        data: [data.client_req, data.cache_hit, data.cache_miss],
+                        backgroundColor: ['rgba(75, 192, 192, 0.2)', 'rgba(255, 159, 64, 0.2)', 'rgba(255, 99, 132, 0.2)'],
+                        borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 159, 64, 1)', 'rgba(255, 99, 132, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Add more charts as needed
+        }
+
+        window.onload = function() {
+            createCharts();
+        }
+    </script>
+</head>
+<body>
+    <h1>Varnish Cache Statistics - Charts</h1>
+    <div class="chart-container">
+        <canvas id="chart1"></canvas>
+    </div>
+    <!-- Add more chart containers as needed -->
+</body>
+</html>
