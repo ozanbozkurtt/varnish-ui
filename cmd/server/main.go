@@ -28,7 +28,7 @@ func chartsHandler(w http.ResponseWriter, r *http.Request) {
 func endpointStatsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Received request for /endpoint_stats endpoint")
 
-	stats, err := varnish.GetEndpointStats()
+	stats, err := varnish.GetVarnishEndpointStats()
 	if err != nil {
 		log.Printf("Error getting endpoint stats: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

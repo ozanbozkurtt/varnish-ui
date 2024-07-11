@@ -3,7 +3,7 @@ package varnish
 import (
 	"bufio"
 	"encoding/json"
-	"os/exec"
+	"os"
 	"sort"
 	"strings"
 )
@@ -13,63 +13,70 @@ type EndpointStats struct {
 	TopEndpoints  map[string]int `json:"top_endpoints"`
 }
 
-func GetEndpointStats() ([]byte, error) {
-	cmd := exec.Command("varnishncsa", "-w", "/dev/stdout")
-	stdout, err := cmd.StdoutPipe()
+func GetVarnishEndpointStats() ([]byte, error) {
+	// Log dosyasını oku ve endpoint istatistiklerini parse et
+	endpointStats := parseEndpointStats("/var/log/varnish/varnish.log")
+	return json.Marshal(endpointStats)
+}
+
+func parseEndpointStats(logFile string) EndpointStats {
+	stats := EndpointStats{
+		TopEndpoints: make(map[string]int),
+	}
+	lines, err := readLines(logFile)
+	if err != nil {
+		return stats
+	}
+
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) < 7 {
+			continue
+		}
+		endpoint := fields[6]
+		stats.TotalRequests++
+		stats.TopEndpoints[endpoint]++
+	}
+
+	stats.TopEndpoints = getTopEndpoints(stats.TopEndpoints, 5)
+
+	return stats
+}
+
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	endpoints := make(map[string]int)
-	scanner := bufio.NewScanner(stdout)
+	var lines []string
+	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		line := scanner.Text()
-		fields := strings.Fields(line)
-		if len(fields) > 6 {
-			endpoint := fields[6]
-			endpoints[endpoint]++
-		}
+		lines = append(lines, scanner.Text())
 	}
+	return lines, scanner.Err()
+}
 
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	totalRequests := 0
-	for _, count := range endpoints {
-		totalRequests += count
-	}
-
+func getTopEndpoints(endpointMap map[string]int, topN int) map[string]int {
 	type kv struct {
 		Key   string
 		Value int
 	}
 
-	var ss []kv
-	for k, v := range endpoints {
-		ss = append(ss, kv{k, v})
+	var sortedEndpoints []kv
+	for k, v := range endpointMap {
+		sortedEndpoints = append(sortedEndpoints, kv{k, v})
 	}
 
-	sort.Slice(ss, func(i, j int) bool {
-		return ss[i].Value > ss[j].Value
+	sort.Slice(sortedEndpoints, func(i, j int) bool {
+		return sortedEndpoints[i].Value > sortedEndpoints[j].Value
 	})
 
 	topEndpoints := make(map[string]int)
-	for i, kv := range ss {
-		if i >= 5 {
-			break
-		}
-		topEndpoints[kv.Key] = kv.Value
+	for i := 0; i < topN && i < len(sortedEndpoints); i++ {
+		topEndpoints[sortedEndpoints[i].Key] = sortedEndpoints[i].Value
 	}
 
-	stats := EndpointStats{
-		TotalRequests: totalRequests,
-		TopEndpoints:  topEndpoints,
-	}
-
-	return json.Marshal(stats)
+	return topEndpoints
 }

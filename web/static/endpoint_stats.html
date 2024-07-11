@@ -1,59 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Varnish Endpoint Statistics - Charts</title>
+    <title>Varnish Endpoint Statistics</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .chart-container {
-            width: 80%;
-            margin: auto;
-        }
-    </style>
     <script>
         async function fetchEndpointStats() {
             const response = await fetch('/endpoint_stats');
             const data = await response.json();
-            return data;
+            updateChart(data);
         }
 
-        async function createEndpointCharts() {
-            const data = await fetchEndpointStats();
+        function updateChart(data) {
+            const labels = Object.keys(data.top_endpoints);
+            const values = Object.values(data.top_endpoints);
 
-            const ctx1 = document.getElementById('totalRequestsChart').getContext('2d');
-            new Chart(ctx1, {
+            const ctx = document.getElementById('endpointChart').getContext('2d');
+            new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['Total Requests'],
+                    labels: labels,
                     datasets: [{
-                        label: 'Total Requests',
-                        data: [data.total_requests],
-                        backgroundColor: ['rgba(75, 192, 192, 0.2)'],
-                        borderColor: ['rgba(75, 192, 192, 1)'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-
-            const topEndpointsLabels = Object.keys(data.top_endpoints);
-            const topEndpointsData = Object.values(data.top_endpoints);
-
-            const ctx2 = document.getElementById('topEndpointsChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: topEndpointsLabels,
-                    datasets: [{
-                        label: 'Top 5 Endpoints',
-                        data: topEndpointsData,
-                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
-                        borderColor: 'rgba(255, 159, 64, 1)',
+                        label: 'Endpoint Requests',
+                        data: values,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
                         borderWidth: 1
                     }]
                 },
@@ -68,17 +38,12 @@
         }
 
         window.onload = function() {
-            createEndpointCharts();
+            fetchEndpointStats();
         }
     </script>
 </head>
 <body>
-    <h1>Varnish Endpoint Statistics - Charts</h1>
-    <div class="chart-container">
-        <canvas id="totalRequestsChart"></canvas>
-    </div>
-    <div class="chart-container">
-        <canvas id="topEndpointsChart"></canvas>
-    </div>
+    <h1>Varnish Endpoint Statistics</h1>
+    <canvas id="endpointChart" width="400" height="200"></canvas>
 </body>
 </html>
