@@ -1,19 +1,10 @@
 package main
 
 import (
-	"encoding/json"
-	"html/template"
 	"log"
-	"net/http"
-
 	"my-varnish-stats/internal/varnish"
+	"net/http"
 )
-
-var templates *template.Template
-
-func init() {
-	templates = template.Must(template.ParseFiles("web/static/templates/stats.html"))
-}
 
 func statsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Received request for /stats endpoint")
@@ -25,30 +16,16 @@ func statsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statsMap := make(map[string]int)
-	err = json.Unmarshal(stats, &statsMap)
-	if err != nil {
-		log.Printf("Error parsing varnish stats: %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = templates.ExecuteTemplate(w, "stats.html", statsMap)
-	if err != nil {
-		log.Printf("Error rendering template: %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func chartsHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/stats", http.StatusMovedPermanently)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(stats)
 }
 
 func main() {
+	// /stats endpoint'ini işleyici
 	http.HandleFunc("/stats", statsHandler)
-	http.HandleFunc("/charts", chartsHandler) // Redirect /charts to /stats
 
+	// Web arayüzü için dosya sunucusu
 	fs := http.FileServer(http.Dir("./web/static"))
 	http.Handle("/", fs)
 
