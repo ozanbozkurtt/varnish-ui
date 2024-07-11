@@ -25,9 +25,25 @@ func chartsHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./web/static/charts.html")
 }
 
+func endpointStatsHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request for /endpoint_stats endpoint")
+
+	stats, err := varnish.GetEndpointStats()
+	if err != nil {
+		log.Printf("Error getting endpoint stats: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(stats)
+}
+
 func main() {
 	http.HandleFunc("/stats", statsHandler)
 	http.HandleFunc("/charts", chartsHandler)
+	http.HandleFunc("/endpoint_stats", endpointStatsHandler)
 
 	fs := http.FileServer(http.Dir("./web/static"))
 	http.Handle("/", fs)
